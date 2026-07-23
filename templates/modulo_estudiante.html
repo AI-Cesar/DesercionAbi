@@ -1,0 +1,122 @@
+{% extends "plantilla_base.html" %}
+
+{% block contenido_principal_de_la_pagina %}
+<!-- Encabezado con bienvenida personalizada y botón de salir -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2>¡Hola, {{ alumno.nombre_completo_estudiante }}!</h2>
+        <p class="text-muted mb-0">Matrícula: {{ alumno.matricula_estudiante }} | Portal de Seguimiento Personal</p>
+    </div>
+    <a href="/logout" class="btn btn-outline-danger btn-sm">Cerrar Sesión</a>
+</div>
+<!-- Banner de Alertas Institucionales Enviadas por Docentes -->
+{% if notificaciones %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-danger shadow-sm">
+            <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
+                <span> <strong>Avisos y Tutorías de tus Profesores</strong></span>
+                <span class="badge bg-white text-danger">{{ notificaciones|length }} nueva(s)</span>
+            </div>
+            <ul class="list-group list-group-flush">
+                {% for notificacion in notificaciones %}
+                <li class="list-group-item bg-light-danger py-3">
+                    <small class="text-muted d-block mb-1">Fecha: {{ notificacion.fecha_envio }}</small>
+                    <p class="mb-0 text-dark"><strong>Mensaje del docente:</strong> {{ notificacion.mensaje_notificacion }}</p>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Tarjetas de Indicadores Personales (KPIs) -->
+<div class="row mb-4">
+    <!-- Nivel de Riesgo -->
+    <div class="col-md-4 mb-3">
+        <div class="card shadow-sm text-center border-0 
+            {% if etiqueta_clasificacion_de_riesgo == 'Alto' %}bg-danger text-white
+            {% elif etiqueta_clasificacion_de_riesgo == 'Medio' %}bg-warning text-dark
+            {% else %}bg-success text-white{% endif %}">
+            <div class="card-body">
+                <h6 class="card-subtitle mb-2">Estatus de Riesgo</h6>
+                <h3 class="card-title fw-bold">{{ etiqueta_clasificacion_de_riesgo }}</h3>
+                <small>Índice: {{ puntuacion_final_de_riesgo }} / 100</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Promedio Académico (Cargado de la BD) -->
+    <div class="col-md-4 mb-3">
+        <div class="card shadow-sm text-center border-0 bg-white">
+            <div class="card-body">
+                <h6 class="card-subtitle text-muted mb-2">Promedio Académico</h6>
+                <h3 class="card-title text-primary fw-bold">{{ alumno.calificacion_promedio_unidad }} / 10</h3>
+                <small class="text-muted">Asistencia: {{ alumno.porcentaje_asistencia_total }}%</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Estrés Percibido -->
+    <div class="col-md-4 mb-3">
+        <div class="card shadow-sm text-center border-0 bg-white">
+            <div class="card-body">
+                <h6 class="card-subtitle text-muted mb-2">Nivel de Estrés</h6>
+                <h3 class="card-title text-secondary fw-bold">{{ alumno.nivel_de_estres_percibido }} / 5</h3>
+                <small class="text-muted">Sueño: {{ alumno.horas_de_sueno_promedio }} hrs/noche</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Recomendaciones Personalizadas -->
+    <div class="col-md-7 mb-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-dark text-white">
+                 Recomendaciones Personalizadas para ti
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    {% for recomendacion in recomendaciones %}
+                    <li class="list-group-item py-3">
+                        {{ recomendacion }}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulario para Actualizar Hábitos -->
+    <div class="col-md-5 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                 Actualizar mis Hábitos Semanales
+            </div>
+            <div class="card-body">
+                <form action="/estudiante" method="POST">
+                    <div class="mb-3">
+                        <label for="horas_de_estudio_semanales" class="form-label">Horas de Estudio esta Semana:</label>
+                        <input type="number" class="form-control" id="horas_de_estudio_semanales" name="horas_de_estudio_semanales" value="{{ alumno.horas_de_estudio_semanales }}" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="horas_de_sueno_promedio" class="form-label">Horas de Sueño por Noche:</label>
+                        <input type="number" class="form-control" id="horas_de_sueno_promedio" name="horas_de_sueno_promedio" value="{{ alumno.horas_de_sueno_promedio }}" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="nivel_de_estres_percibido" class="form-label">Estrés del 1 al 5:</label>
+                        <input type="number" min="1" max="5" class="form-control" id="nivel_de_estres_percibido" name="nivel_de_estres_percibido" value="{{ alumno.nivel_de_estres_percibido }}" required>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary w-100">Guardar y Recalcular</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,170 @@
+{% extends "plantilla_base.html" %}
+
+{% block contenido_principal_de_la_pagina %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h2>Módulo Docente: Monitoreo de Alumnos</h2>
+        <p class="text-muted">Gestión de alertas tempranas y seguimiento académico de los estudiantes.</p>
+    </div>
+    
+    <!-- Filtros de búsqueda rápidos -->
+    <div class="col-md-4 text-end align-self-center">
+        <div class="btn-group" role="group" aria-label="Filtros de Riesgo">
+            <button type="button" class="btn btn-outline-dark active" onclick="filtrarTabla('Todos')">Todos</button>
+            <button type="button" class="btn btn-outline-danger" onclick="filtrarTabla('Alto')">Alto</button>
+            <button type="button" class="btn btn-outline-warning text-dark" onclick="filtrarTabla('Medio')">Medio</button>
+            <button type="button" class="btn btn-outline-success" onclick="filtrarTabla('Bajo')">Bajo</button>
+        </div>
+    </div>
+</div>
+
+<!-- Tabla de datos de los alumnos -->
+<div class="table-responsive shadow-sm rounded">
+    <table class="table table-hover table-bordered align-middle mb-0" id="tabla_alumnos_docente">
+        <thead class="table-dark">
+            <tr>
+                <th>Matrícula</th>
+                <th>Nombre del Estudiante</th>
+                <th>Promedio</th>
+                <th>Asistencia</th>
+                <th>Estatus Riesgo</th>
+                <th>Factor Principal</th>
+                <th>Acción</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for diccionario_informacion_alumno in lista_detallada_alumnos %}
+            <tr class="fila-alumno 
+                {% if diccionario_informacion_alumno.etiqueta_clasificacion_de_riesgo == 'Alto' %}table-danger
+                {% elif diccionario_informacion_alumno.etiqueta_clasificacion_de_riesgo == 'Medio' %}table-warning
+                {% endif %}" 
+                data-riesgo="{{ diccionario_informacion_alumno.etiqueta_clasificacion_de_riesgo }}">
+                
+                <td><strong>{{ diccionario_informacion_alumno.matricula_estudiante }}</strong></td>
+                <td>{{ diccionario_informacion_alumno.nombre_completo_estudiante }}</td>
+                <td>{{ diccionario_informacion_alumno.calificacion_promedio_unidad }}</td>
+                <td>{{ diccionario_informacion_alumno.porcentaje_asistencia_total }}%</td>
+                <td>
+                    <span class="badge 
+                        {% if diccionario_informacion_alumno.etiqueta_clasificacion_de_riesgo == 'Alto' %}bg-danger
+                        {% elif diccionario_informacion_alumno.etiqueta_clasificacion_de_riesgo == 'Medio' %}bg-warning text-dark
+                        {% else %}bg-success{% endif %}">
+                        {{ diccionario_informacion_alumno.etiqueta_clasificacion_de_riesgo }}
+                    </span>
+                </td>
+                <td>
+                    <small>
+                        {% if diccionario_informacion_alumno.calificacion_promedio_unidad < 7.0 %}
+                             Reprobado
+                        {% elif diccionario_informacion_alumno.porcentaje_asistencia_total < 80 %}
+                             Faltas
+                        {% elif diccionario_informacion_alumno.nivel_de_estres_percibido >= 4 %}
+                             Estrés
+                        {% else %}
+                             Balanceado
+                        {% endif %}
+                    </small>
+                </td>
+                <td>
+                    <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalNotificacion" onclick="prepararNotificacion('{{ diccionario_informacion_alumno.nombre_completo_estudiante }}', '{{ diccionario_informacion_alumno.matricula_estudiante }}')">
+                        📨 Notificar
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Ventana Emergente (Modal) para Notificaciones de Tutoría -->
+<div class="modal fade" id="modalNotificacion" tabindex="-1" aria-labelledby="modalNotificacionLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title" id="modalNotificacionLabel">Enviar Alerta / Asignar Tutoría</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Se enviará una notificación institucional al estudiante: <strong id="nombre_estudiante_modal"></strong></p>
+                <div class="mb-3">
+                    <label for="mensaje_notificacion" class="form-label">Mensaje para el alumno:</label>
+                    <textarea class="form-control" id="mensaje_notificacion" rows="3">Estimado alumno, el sistema ha detectado un indicador de riesgo en tu expediente. Se te solicita presentarte en el área de Tutorías para dar seguimiento a tu desempeño académico.</textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" onclick="confirmarEnvioNotificacion()">Enviar Alerta</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast / Alerta flotante de confirmación -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div id="toastConfirmacion" class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body">
+                ✅ Notificación enviada al alumno exitosamente.
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript para interactividad posicionado al final del archivo -->
+<script>
+    function filtrarTabla(nivel_riesgo_seleccionado) {
+        const filas_estudiantes = document.querySelectorAll('.fila-alumno');
+        
+        filas_estudiantes.forEach(fila => {
+            const riesgo_estudiante = fila.getAttribute('data-riesgo');
+            if (nivel_riesgo_seleccionado === 'Todos' || riesgo_estudiante === nivel_riesgo_seleccionado) {
+                fila.style.display = '';
+            } else {
+                fila.style.display = 'none';
+            }
+        });
+    }
+
+    function prepararNotificacion(nombre_completo_estudiante) {
+        document.getElementById('nombre_estudiante_modal').innerText = nombre_completo_estudiante;
+    }
+
+    function confirmarEnvioNotificacion() {
+        const elemento_modal = bootstrap.Modal.getInstance(document.getElementById('modalNotificacion'));
+        elemento_modal.hide();
+        
+        const elemento_toast = new bootstrap.Toast(document.getElementById('toastConfirmacion'));
+        elemento_toast.show();
+    }
+
+    let matricula_estudiante_seleccionado = null;
+
+    function prepararNotificacion(nombre_completo_estudiante, matricula_estudiante) {
+        document.getElementById('nombre_estudiante_modal').innerText = nombre_completo_estudiante;
+        matricula_estudiante_seleccionado = matricula_estudiante;
+    }
+
+    function confirmarEnvioNotificacion() {
+        const mensaje_contenido = document.getElementById('mensaje_notificacion').value;
+
+        // Enviamos la notificación a Flask usando fetch
+        const datos_formulario = new FormData();
+        datos_formulario.append('matricula_estudiante', matricula_estudiante_seleccionado);
+        datos_formulario.append('mensaje_notificacion', mensaje_contenido);
+
+        fetch('/enviar_notificacion', {
+            method: 'POST',
+            body: datos_formulario
+        })
+        .then(response => response.json())
+        .then(data => {
+            const elemento_modal = bootstrap.Modal.getInstance(document.getElementById('modalNotificacion'));
+            elemento_modal.hide();
+            
+            const elemento_toast = new bootstrap.Toast(document.getElementById('toastConfirmacion'));
+            elemento_toast.show();
+        });
+    }
+</script>
+{% endblock %}

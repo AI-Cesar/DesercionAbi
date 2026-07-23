@@ -1,0 +1,26 @@
+{% extends "plantilla_base.html" %}
+
+{% block contenido_principal_de_la_pagina %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-5">
+        <div class="card shadow">
+            <div class="card-body p-4">
+                <h3 class="card-title text-center mb-4">Iniciar Sesión</h3>
+                <p class="text-muted text-center small mb-4">Ingresa tu matrícula para acceder a tu portal estudiante.</p>
+                
+                {% if mensaje_error %}
+                <div class="alert alert-danger small">{{ mensaje_error }}</div>
+                {% endif %}
+
+                <form action="/login" method="POST">
+                    <div class="mb-3">
+                        <label for="matricula_estudiante" class="form-label">Matrícula del Estudiante:</label>
+                        <input type="number" class="form-control" id="matricula_estudiante" name="matricula_estudiante" placeholder="Ej. 25030200" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Acceder a mi Portal</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

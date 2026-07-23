@@ -1,0 +1,77 @@
+{% extends "plantilla_base.html" %}
+
+{% block contenido_principal_de_la_pagina %}
+<div class="row mb-4">
+    <div class="col-12 text-center">
+        <h2>Módulo Administrativo: Panel Estadístico General</h2>
+        <p class="text-muted">Distribución de estudiantes por rangos académicos y nivel de riesgo.</p>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <!-- Riesgo General -->
+    <div class="col-md-6 mb-3">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-dark text-white fw-bold">1. Clasificación General de Riesgo</div>
+            <div class="card-body">
+                <div style="height: 220px;">
+                    <canvas id="grafica_dona_riesgo" 
+                            data-bajo="{{ cantidad_alumnos_riesgo_bajo }}" 
+                            data-medio="{{ cantidad_alumnos_riesgo_medio }}" 
+                            data-alto="{{ cantidad_alumnos_riesgo_alto }}"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Desglose de Calificaciones en 3 Barras -->
+    <div class="col-md-6 mb-3">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-dark text-white fw-bold">2. Distribución de Calificaciones</div>
+            <div class="card-body">
+                <div style="height: 220px;">
+                    <canvas id="grafica_barras_calificacion" 
+                            data-excelente="{{ calif_excelente }}" 
+                            data-buena="{{ calif_buena }}" 
+                            data-reprobado="{{ calif_reprobado }}"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <!-- Desglose de Asistencias en 3 Barras -->
+    <div class="col-md-6 mb-3">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-dark text-white fw-bold">3. Distribución de Asistencias</div>
+            <div class="card-body">
+                <div style="height: 220px;">
+                    <canvas id="grafica_barras_asistencia" 
+                            data-excelente="{{ asist_excelente }}" 
+                            data-regular="{{ asist_regular }}" 
+                            data-critica="{{ asist_critica }}"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hábitos -->
+    <div class="col-md-6 mb-3">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-dark text-white fw-bold">4. Hábitos y Estilo de Vida</div>
+            <div class="card-body">
+                <div style="height: 220px;">
+                    <canvas id="grafica_barras_habitos" 
+                            data-sueno="{{ promedio_sueño }}" 
+                            data-estudio="{{ promedio_estudio }}" 
+                            data-estres="{{ promedio_estres }}"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="/static/scripts_graficas.js"></script>
+{% endblock %}
