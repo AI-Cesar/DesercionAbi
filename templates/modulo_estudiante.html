@@ -5,17 +5,18 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h2>¡Hola, {{ alumno.nombre_completo_estudiante }}!</h2>
-        <p class="text-muted mb-0">Matrícula: {{ alumno.matricula_estudiante }} | Portal de Seguimiento Personal</p>
+        <p class="text-muted mb-0">Matrícula: {{ alumno.matricula_estudiante }} | Portal de Seguimiento UPG</p>
     </div>
     <a href="/logout" class="btn btn-outline-danger btn-sm">Cerrar Sesión</a>
 </div>
+
 <!-- Banner de Alertas Institucionales Enviadas por Docentes -->
 {% if notificaciones %}
 <div class="row mb-4">
     <div class="col-12">
         <div class="card border-danger shadow-sm">
             <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
-                <span> <strong>Avisos y Tutorías de tus Profesores</strong></span>
+                <span><i class="bi bi-bell-fill me-2"></i><strong>Avisos y Tutorías de tus Profesores</strong></span>
                 <span class="badge bg-white text-danger">{{ notificaciones|length }} nueva(s)</span>
             </div>
             <ul class="list-group list-group-flush">
@@ -47,7 +48,7 @@
         </div>
     </div>
 
-    <!-- Promedio Académico (Cargado de la BD) -->
+    <!-- Promedio Académico -->
     <div class="col-md-4 mb-3">
         <div class="card shadow-sm text-center border-0 bg-white">
             <div class="card-body">
@@ -71,52 +72,121 @@
 </div>
 
 <div class="row">
-    <!-- Recomendaciones Personalizadas -->
+    <!-- RECOMENDACIONES PERSONALIZADAS Y RECURSOS INTERACTIVOS -->
     <div class="col-md-7 mb-4">
-        <div class="card shadow-sm h-100">
-            <div class="card-header bg-dark text-white">
-                 Recomendaciones Personalizadas para ti
+        <div class="card shadow-sm h-100 border-0">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
+                <h5 class="mb-0 fs-6">
+                    <i class="bi bi-lightbulb-fill text-warning me-2"></i>Recomendaciones y Recursos Sugeridos
+                </h5>
+                <span class="badge bg-primary">Soporte UPG</span>
             </div>
-            <div class="card-body">
-                <ul class="list-group list-group-flush">
+            
+            <div class="card-body p-4">
+                <!-- BANNER DE ALERTA SEGÚN EL RIESGO -->
+                {% if etiqueta_clasificacion_de_riesgo == 'Alto' %}
+                    <div class="alert alert-danger d-flex align-items-center mb-4" role="alert">
+                        <i class="bi bi-exclamation-triangle-fill fs-3 me-3"></i>
+                        <div>
+                            <strong>¡Alerta Académica!</strong> Tu expediente requiere seguimiento especial. Prioriza tus materias pendientes y acércate al área de tutorías.
+                        </div>
+                    </div>
+                {% elif etiqueta_clasificacion_de_riesgo == 'Medio' %}
+                    <div class="alert alert-warning d-flex align-items-center mb-4 text-dark" role="alert">
+                        <i class="bi bi-exclamation-circle-fill fs-3 me-3"></i>
+                        <div>
+                            <strong>Atención a tus Hábitos:</strong> Estás en un punto medio. Ajusta tus horas de sueño o asistencia para evitar caer en riesgo alto.
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="alert alert-success d-flex align-items-center mb-4" role="alert">
+                        <i class="bi bi-check-circle-fill fs-3 me-3"></i>
+                        <div>
+                            <strong>¡Excelente Desempeño!</strong> Tus indicadores están balanceados. Sigue manteniendo este nivel de constancia.
+                        </div>
+                    </div>
+                {% endif %}
+
+                <!-- LISTA DE DIAGNÓSTICOS DEL BACKEND -->
+                <h6 class="fw-bold text-dark mb-2">Diagnóstico de tus hábitos:</h6>
+                <ul class="list-group list-group-flush mb-4">
                     {% for recomendacion in recomendaciones %}
-                    <li class="list-group-item py-3">
-                        {{ recomendacion }}
+                    <li class="list-group-item py-2 px-0 bg-transparent">
+                        <i class="bi bi-arrow-right-circle-fill text-primary me-2"></i>{{ recomendacion }}
                     </li>
                     {% endfor %}
                 </ul>
+
+                <!-- SECCIÓN INTERACTIVA CON LINKS A YOUTUBE / RECURSOS -->
+                <h6 class="fw-bold text-dark mb-3 border-top pt-3">
+                    <i class="bi bi-collection-play-fill text-danger me-2"></i>Recursos Recomendados para ti:
+                </h6>
+
+                <div class="list-group list-group-flush">
+                    {% if alumno.calificacion_promedio_unidad < 8.0 %}
+                        <a href="https://www.youtube.com/results?search_query=tecnica+pomodoro+estudio+eficiente" target="_blank" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center rounded mb-2 border">
+                            <div>
+                                <i class="bi bi-youtube text-danger me-2"></i>
+                                <strong>Técnicas de Estudio Eficiente (Pomodoro)</strong>
+                                <div class="text-muted small">Estrategias para mejorar la retención de temas difíciles.</div>
+                            </div>
+                            <span class="badge bg-danger rounded-pill"><i class="bi bi-box-arrow-up-right me-1"></i> Ver</span>
+                        </a>
+                    {% endif %}
+
+                    {% if alumno.nivel_de_estres_percibido >= 3 or alumno.horas_de_sueno_promedio < 7 %}
+                        <a href="https://www.youtube.com/results?search_query=higiene+del+sueno+para+estudiantes" target="_blank" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center rounded mb-2 border">
+                            <div>
+                                <i class="bi bi-moon-stars-fill text-primary me-2"></i>
+                                <strong>Guía de Higiene del Sueño y Estrés</strong>
+                                <div class="text-muted small">Consejos para recuperar energía y reducir fatiga mental.</div>
+                            </div>
+                            <span class="badge bg-primary rounded-pill"><i class="bi bi-box-arrow-up-right me-1"></i> Ver</span>
+                        </a>
+                    {% endif %}
+
+                    <a href="https://www.youtube.com/results?search_query=organizacion+del+tiempo+universidad" target="_blank" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center rounded border">
+                        <div>
+                            <i class="bi bi-journal-check text-success me-2"></i>
+                            <strong>Planificación y Gestión del Tiempo</strong>
+                            <div class="text-muted small">Métodos sencillos para organizar tus exámenes y entregas.</div>
+                        </div>
+                        <span class="badge bg-success rounded-pill"><i class="bi bi-box-arrow-up-right me-1"></i> Abrir</span>
+                    </a>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Formulario para Actualizar Hábitos -->
     <div class="col-md-5 mb-4">
-        <div class="card shadow-sm">
-            <div class="card-header bg-primary text-white">
-                 Actualizar mis Hábitos Semanales
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-primary text-white py-3">
+                <h5 class="mb-0 fs-6"><i class="bi bi-sliders me-2"></i>Actualizar mis Hábitos Semanales</h5>
             </div>
-            <div class="card-body">
+            <div class="card-body p-4">
                 <form action="/estudiante" method="POST">
                     <div class="mb-3">
-                        <label for="horas_de_estudio_semanales" class="form-label">Horas de Estudio esta Semana:</label>
+                        <label for="horas_de_estudio_semanales" class="form-label fw-bold">Horas de Estudio esta Semana:</label>
                         <input type="number" class="form-control" id="horas_de_estudio_semanales" name="horas_de_estudio_semanales" value="{{ alumno.horas_de_estudio_semanales }}" required>
                     </div>
                     
                     <div class="mb-3">
-                        <label for="horas_de_sueno_promedio" class="form-label">Horas de Sueño por Noche:</label>
+                        <label for="horas_de_sueno_promedio" class="form-label fw-bold">Horas de Sueño por Noche:</label>
                         <input type="number" class="form-control" id="horas_de_sueno_promedio" name="horas_de_sueno_promedio" value="{{ alumno.horas_de_sueno_promedio }}" required>
                     </div>
                     
                     <div class="mb-3">
-                        <label for="nivel_de_estres_percibido" class="form-label">Estrés del 1 al 5:</label>
+                        <label for="nivel_de_estres_percibido" class="form-label fw-bold">Nivel de Estrés (1 al 5):</label>
                         <input type="number" min="1" max="5" class="form-control" id="nivel_de_estres_percibido" name="nivel_de_estres_percibido" value="{{ alumno.nivel_de_estres_percibido }}" required>
                     </div>
                     
-                    <button type="submit" class="btn btn-primary w-100">Guardar y Recalcular</button>
+                    <button type="submit" class="btn btn-primary w-100 py-2 mt-3 fw-bold">
+                        <i class="bi bi-arrow-repeat me-1"></i> Guardar y Recalcular
+                    </button>
                 </form>
             </div>
         </div>
     </div>
 </div>
-
 {% endblock %}

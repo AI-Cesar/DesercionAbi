@@ -1,15 +1,26 @@
 from flask import Flask, request, jsonify, render_template, redirect, url_for, session
-import sqlite3
+import pymysql
+import pymysql.cursors
 from logica_calculo_riesgo import calcular_nivel_de_riesgo_estudiantil
 
 aplicacion_web_flask = Flask(__name__)
 # Necesario para poder usar 'session' en Flask
 aplicacion_web_flask.secret_key = 'clave_secreta_super_segura_para_el_prototipo'
 
+# ===== Datos de conexión a MySQL (XAMPP / HeidiSQL) =====
+CONFIGURACION_BASE_DE_DATOS_MYSQL = {
+    "host": "localhost",
+    "user": "root",
+    "password": "",
+    "database": "registros_escuela_upg",
+    "port": 3306,
+    "charset": "utf8mb4",
+    "cursorclass": pymysql.cursors.DictCursor,
+}
+
 def obtener_conexion_base_de_datos():
-    conexion_base_de_datos_sqlite = sqlite3.connect("registros_escuela.db")
-    conexion_base_de_datos_sqlite.row_factory = sqlite3.Row
-    return conexion_base_de_datos_sqlite
+    conexion_base_de_datos_mysql = pymysql.connect(**CONFIGURACION_BASE_DE_DATOS_MYSQL)
+    return conexion_base_de_datos_mysql
 
 @aplicacion_web_flask.route('/')
 def pagina_de_inicio_redireccion():
@@ -24,11 +35,11 @@ def vista_inicio_sesion():
     if request.method == 'POST':
         matricula_ingresada_usuario = request.form.get('matricula_estudiante', '').strip()
         
-        conexion_base_de_datos_sqlite = obtener_conexion_base_de_datos()
-        cursor_base_de_datos = conexion_base_de_datos_sqlite.cursor()
-        cursor_base_de_datos.execute("SELECT * FROM tabla_alumnos WHERE matricula_estudiante = ?", (matricula_ingresada_usuario,))
+        conexion_base_de_datos_mysql = obtener_conexion_base_de_datos()
+        cursor_base_de_datos = conexion_base_de_datos_mysql.cursor()
+        cursor_base_de_datos.execute("SELECT * FROM tabla_alumnos WHERE matricula_estudiante = %s", (matricula_ingresada_usuario,))
         registro_estudiante_encontrado = cursor_base_de_datos.fetchone()
-        conexion_base_de_datos_sqlite.close()
+        conexion_base_de_datos_mysql.close()
         
         if registro_estudiante_encontrado:
             # Guardamos el alumno en la sesión activa
@@ -47,14 +58,14 @@ def enviar_notificacion_a_estudiante():
     mensaje_notificacion_contenido = request.form.get('mensaje_notificacion')
 
     if matricula_estudiante_destino and mensaje_notificacion_contenido:
-        conexion_base_de_datos_sqlite = obtener_conexion_base_de_datos()
-        cursor_base_de_datos = conexion_base_de_datos_sqlite.cursor()
+        conexion_base_de_datos_mysql = obtener_conexion_base_de_datos()
+        cursor_base_de_datos = conexion_base_de_datos_mysql.cursor()
         cursor_base_de_datos.execute("""
             INSERT INTO tabla_notificaciones (matricula_estudiante, mensaje_notificacion)
-            VALUES (?, ?)
+            VALUES (%s, %s)
         """, (matricula_estudiante_destino, mensaje_notificacion_contenido))
-        conexion_base_de_datos_sqlite.commit()
-        conexion_base_de_datos_sqlite.close()
+        conexion_base_de_datos_mysql.commit()
+        conexion_base_de_datos_mysql.close()
         return jsonify({"estatus": "éxito", "mensaje": "Notificación guardada."})
     
     return jsonify({"estatus": "error", "mensaje": "Faltan datos."}), 400
@@ -71,8 +82,8 @@ def modulo_vista_estudiante():
         
     matricula_estudiante_actual = session['matricula_estudiante_sesion']
     
-    conexion_base_de_datos_sqlite = obtener_conexion_base_de_datos()
-    cursor_base_de_datos = conexion_base_de_datos_sqlite.cursor()
+    conexion_base_de_datos_mysql = obtener_conexion_base_de_datos()
+    cursor_base_de_datos = conexion_base_de_datos_mysql.cursor()
     
     # Manejo del formulario de hábitos (POST)
     if request.method == 'POST':
@@ -82,20 +93,20 @@ def modulo_vista_estudiante():
         
         cursor_base_de_datos.execute("""
             UPDATE tabla_alumnos 
-            SET horas_de_estudio_semanales = ?, horas_de_sueno_promedio = ?, nivel_de_estres_percibido = ?
-            WHERE matricula_estudiante = ?
+            SET horas_de_estudio_semanales = %s, horas_de_sueno_promedio = %s, nivel_de_estres_percibido = %s
+            WHERE matricula_estudiante = %s
         """, (horas_de_estudio_semanales, horas_de_sueno_promedio, nivel_de_estres_percibido, matricula_estudiante_actual))
-        conexion_base_de_datos_sqlite.commit()
+        conexion_base_de_datos_mysql.commit()
 
     # Obtenemos los datos del alumno
-    cursor_base_de_datos.execute("SELECT * FROM tabla_alumnos WHERE matricula_estudiante = ?", (matricula_estudiante_actual,))
+    cursor_base_de_datos.execute("SELECT * FROM tabla_alumnos WHERE matricula_estudiante = %s", (matricula_estudiante_actual,))
     datos_alumno = dict(cursor_base_de_datos.fetchone())
 
     # NUEVO: Consultamos las notificaciones del docente dirigidas a esta matrícula
-    cursor_base_de_datos.execute("SELECT * FROM tabla_notificaciones WHERE matricula_estudiante = ? ORDER BY fecha_envio DESC", (matricula_estudiante_actual,))
+    cursor_base_de_datos.execute("SELECT * FROM tabla_notificaciones WHERE matricula_estudiante = %s ORDER BY fecha_envio DESC", (matricula_estudiante_actual,))
     lista_notificaciones_recibidas = [dict(fila) for fila in cursor_base_de_datos.fetchall()]
     
-    conexion_base_de_datos_sqlite.close()
+    conexion_base_de_datos_mysql.close()
 
     # Cálculo del riesgo
     nivel_de_riesgo_calculado, puntuacion_de_riesgo_calculada = calcular_nivel_de_riesgo_estudiantil(
@@ -109,16 +120,16 @@ def modulo_vista_estudiante():
     # Recomendaciones automáticas
     lista_recomendaciones_personalizadas = []
     if datos_alumno["calificacion_promedio_unidad"] < 7.0:
-        lista_recomendaciones_personalizadas.append(" **Riesgo Académico Crítico:** Tu calificación es menor a 7.0.")
+        lista_recomendaciones_personalizadas.append(" Riesgo Académico Crítico: Tu calificación es menor a 7.0.")
     if datos_alumno["porcentaje_asistencia_total"] < 80:
-        lista_recomendaciones_personalizadas.append(" **Riesgo por Faltas Crítico:** Tienes menos del 80% de asistencia.")
+        lista_recomendaciones_personalizadas.append(" Riesgo por Faltas Crítico: Tienes menos del 80% de asistencia.")
     if datos_alumno["horas_de_sueno_promedio"] < 7:
-        lista_recomendaciones_personalizadas.append(" **Descanso:** Intenta dormir al menos 7-8 horas.")
+        lista_recomendaciones_personalizadas.append(" Descanso: Intenta dormir al menos 7-8 horas.")
     if datos_alumno["nivel_de_estres_percibido"] >= 4:
-        lista_recomendaciones_personalizadas.append(" **Gestión del Estrés:** Acércate al área de orientación.")
+        lista_recomendaciones_personalizadas.append(" Gestión del Estrés: Acércate al área de orientación.")
 
     if not lista_recomendaciones_personalizadas:
-        lista_recomendaciones_personalizadas.append(" **¡Gran trabajo!** Tus indicadores están balanceados.")
+        lista_recomendaciones_personalizadas.append(" ¡Gran trabajo! Tus indicadores están balanceados.")
 
     # Validaciones de límites al final
     if puntuacion_de_riesgo_calculada < 0.0:
@@ -134,17 +145,34 @@ def modulo_vista_estudiante():
         recomendaciones=lista_recomendaciones_personalizadas,
         notificaciones=lista_notificaciones_recibidas  # <--- Le pasamos las alertas al HTML
     )
-
 @aplicacion_web_flask.route('/docente', methods=['GET'])
 def modulo_vista_docente():
     """
-    Ruta que extrae a todos los alumnos, calcula su riesgo y se los devuelve al profesor.
+    Ruta que extrae a los alumnos filtrados por carrera y situación escolar, 
+    calcula su riesgo y se los devuelve al profesor.
     """
-    conexion_base_de_datos_sqlite = obtener_conexion_base_de_datos()
-    cursor_base_de_datos = conexion_base_de_datos_sqlite.cursor()
-    cursor_base_de_datos.execute("SELECT * FROM tabla_alumnos")
+    # Capturamos los filtros desde la URL (por defecto 'Todas')
+    carrera_seleccionada = request.args.get('carrera', 'Todas')
+    situacion_seleccionada = request.args.get('situacion', 'Todas')
+
+    conexion_base_de_datos_mysql = obtener_conexion_base_de_datos()
+    cursor_base_de_datos = conexion_base_de_datos_mysql.cursor()
+    
+    # Construcción dinámica de la consulta SQL
+    consulta_sql_dinamica = "SELECT * FROM tabla_alumnos WHERE 1=1"
+    lista_parametros_busqueda = []
+
+    if carrera_seleccionada != 'Todas':
+        consulta_sql_dinamica += " AND carrera = %s"
+        lista_parametros_busqueda.append(carrera_seleccionada)
+
+    if situacion_seleccionada != 'Todas':
+        consulta_sql_dinamica += " AND situacion_academica = %s"
+        lista_parametros_busqueda.append(situacion_seleccionada)
+
+    cursor_base_de_datos.execute(consulta_sql_dinamica, lista_parametros_busqueda)
     lista_completa_registros_alumnos = cursor_base_de_datos.fetchall()
-    conexion_base_de_datos_sqlite.close()
+    conexion_base_de_datos_mysql.close()
 
     lista_alumnos_procesados_con_riesgo = []
     cantidad_total_alumnos_riesgo_alto = 0
@@ -167,10 +195,6 @@ def modulo_vista_docente():
         if etiqueta_clasificacion_riesgo == "Alto":
             cantidad_total_alumnos_riesgo_alto = cantidad_total_alumnos_riesgo_alto + 1
 
-    # Bloque de validación de datos posicionado al final de la ejecución de la ruta
-    if cantidad_total_alumnos_riesgo_alto < 0:
-        cantidad_total_alumnos_riesgo_alto = 0
-
     diccionario_respuesta_docente = {
         "total_alumnos_evaluados": len(lista_alumnos_procesados_con_riesgo),
         "total_alumnos_riesgo_alto": cantidad_total_alumnos_riesgo_alto,
@@ -185,15 +209,18 @@ def modulo_vista_docente():
         "modulo_docente.html",
         total_alumnos_evaluados=len(lista_alumnos_procesados_con_riesgo),
         total_alumnos_riesgo_alto=cantidad_total_alumnos_riesgo_alto,
-        lista_detallada_alumnos=lista_alumnos_procesados_con_riesgo
+        lista_detallada_alumnos=lista_alumnos_procesados_con_riesgo,
+        carrera_actual=carrera_seleccionada,
+        situacion_actual=situacion_seleccionada
     )
+
 @aplicacion_web_flask.route('/administrativo', methods=['GET'])
 def modulo_vista_administrativo():
-    conexion_base_de_datos_sqlite = obtener_conexion_base_de_datos()
-    cursor_base_de_datos = conexion_base_de_datos_sqlite.cursor()
+    conexion_base_de_datos_mysql = obtener_conexion_base_de_datos()
+    cursor_base_de_datos = conexion_base_de_datos_mysql.cursor()
     cursor_base_de_datos.execute("SELECT * FROM tabla_alumnos")
     lista_completa_registros_alumnos = cursor_base_de_datos.fetchall()
-    conexion_base_de_datos_sqlite.close()
+    conexion_base_de_datos_mysql.close()
 
     contador_alumnos_riesgo_bajo = 0
     contador_alumnos_riesgo_medio = 0

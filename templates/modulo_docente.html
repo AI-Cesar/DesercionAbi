@@ -1,14 +1,57 @@
 {% extends "plantilla_base.html" %}
 
 {% block contenido_principal_de_la_pagina %}
-<div class="row mb-4">
+<div class="row mb-4 align-items-center">
     <div class="col-md-8">
         <h2>Módulo Docente: Monitoreo de Alumnos</h2>
-        <p class="text-muted">Gestión de alertas tempranas y seguimiento académico de los estudiantes.</p>
+        <p class="text-muted">Gestión de alertas tempranas, carreras y seguimiento académico de los estudiantes UPG.</p>
     </div>
-    
-    <!-- Filtros de búsqueda rápidos -->
-    <div class="col-md-4 text-end align-self-center">
+</div>
+
+<!-- BARRA DE FILTROS INSTITUCIONALES (CARRERAS UPG Y SITUACIÓN ESCOLAR) -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body bg-light rounded-3">
+        <form method="GET" action="/docente" class="row g-3 align-items-end">
+            <!-- Selector de Carrera UPG -->
+            <div class="col-md-5">
+                <label for="carrera" class="form-label fw-bold text-dark">Carrera UPG:</label>
+                <select name="carrera" id="carrera" class="form-select">
+                    <option value="Todas" {% if carrera_actual == 'Todas' %}selected{% endif %}>-- Todas las Carreras --</option>
+                    <option value="Datos e Inteligencia Artificial (IDIA)" {% if carrera_actual == 'Datos e Inteligencia Artificial (IDIA)' %}selected{% endif %}>Datos e Inteligencia Artificial (IDIA)</option>
+                    <option value="Alimentos (IAL)" {% if carrera_actual == 'Alimentos (IAL)' %}selected{% endif %}>Alimentos (IAL)</option>
+                    <option value="Automotriz (IAU)" {% if carrera_actual == 'Automotriz (IAU)' %}selected{% endif %}>Automotriz (IAU)</option>
+                    <option value="Biotecnología (IBI)" {% if carrera_actual == 'Biotecnología (IBI)' %}selected{% endif %}>Biotecnología (IBI)</option>
+                    <option value="Energía y Desarrollo Sostenible (IEDS)" {% if carrera_actual == 'Energía y Desarrollo Sostenible (IEDS)' %}selected{% endif %}>Energía y Desarrollo Sostenible (IEDS)</option>
+                    <option value="Logística (ILO)" {% if carrera_actual == 'Logística (ILO)' %}selected{% endif %}>Logística (ILO)</option>
+                    <option value="Manufactura Avanzada (IMA)" {% if carrera_actual == 'Manufactura Avanzada (IMA)' %}selected{% endif %}>Manufactura Avanzada (IMA)</option>
+                    <option value="Calidad y Metrología (ICM)" {% if carrera_actual == 'Calidad y Metrología (ICM)' %}selected{% endif %}>Calidad y Metrología (ICM)</option>
+                    <option value="Mecatrónica (IME)" {% if carrera_actual == 'Mecatrónica (IME)' %}selected{% endif %}>Mecatrónica (IME)</option>
+                </select>
+            </div>
+
+            <!-- Selector de Situación Escolar -->
+            <div class="col-md-5">
+                <label for="situacion" class="form-label fw-bold text-dark">Situación Escolar:</label>
+                <select name="situacion" id="situacion" class="form-select">
+                    <option value="Todas" {% if situacion_actual == 'Todas' %}selected{% endif %}>-- Todas las Situaciones --</option>
+                    <option value="Normal" {% if situacion_actual == 'Normal' %}selected{% endif %}>Normal (Al corriente)</option>
+                    <option value="Regular" {% if situacion_actual == 'Regular' %}selected{% endif %}>Regular (En Regularización)</option>
+                    <option value="Especial" {% if situacion_actual == 'Especial' %}selected{% endif %}>Especial (En Recursamiento)</option>
+                </select>
+            </div>
+
+            <div class="col-md-2 d-grid">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-funnel-fill me-1"></i> Filtrar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Filtros de búsqueda rápidos por Nivel de Riesgo -->
+<div class="row mb-3">
+    <div class="col-12 text-end">
         <div class="btn-group" role="group" aria-label="Filtros de Riesgo">
             <button type="button" class="btn btn-outline-dark active" onclick="filtrarTabla('Todos')">Todos</button>
             <button type="button" class="btn btn-outline-danger" onclick="filtrarTabla('Alto')">Alto</button>
@@ -25,6 +68,8 @@
             <tr>
                 <th>Matrícula</th>
                 <th>Nombre del Estudiante</th>
+                <th>Carrera</th>
+                <th>Situación</th>
                 <th>Promedio</th>
                 <th>Asistencia</th>
                 <th>Estatus Riesgo</th>
@@ -42,6 +87,22 @@
                 
                 <td><strong>{{ diccionario_informacion_alumno.matricula_estudiante }}</strong></td>
                 <td>{{ diccionario_informacion_alumno.nombre_completo_estudiante }}</td>
+                <td><small class="text-muted fw-bold">{{ diccionario_informacion_alumno.carrera }}</small></td>
+                <td>
+                    {% if diccionario_informacion_alumno.situacion_academica == 'Normal' %}
+                        <span class="badge bg-success-subtle text-success border border-success px-2 py-1">
+                            <i class="bi bi-check-circle-fill me-1"></i>Normal
+                        </span>
+                    {% elif diccionario_informacion_alumno.situacion_academica == 'Regular' %}
+                        <span class="badge bg-warning-subtle text-warning border border-warning px-2 py-1">
+                            <i class="bi bi-exclamation-circle-fill me-1"></i>Regular
+                        </span>
+                    {% else %}
+                        <span class="badge bg-danger-subtle text-danger border border-danger px-2 py-1">
+                            <i class="bi bi-exclamation-triangle-fill me-1"></i>Especial
+                        </span>
+                    {% endif %}
+                </td>
                 <td>{{ diccionario_informacion_alumno.calificacion_promedio_unidad }}</td>
                 <td>{{ diccionario_informacion_alumno.porcentaje_asistencia_total }}%</td>
                 <td>
@@ -69,6 +130,12 @@
                     <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalNotificacion" onclick="prepararNotificacion('{{ diccionario_informacion_alumno.nombre_completo_estudiante }}', '{{ diccionario_informacion_alumno.matricula_estudiante }}')">
                         📨 Notificar
                     </button>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="9" class="text-center py-4 text-muted">
+                    No se encontraron alumnos con los filtros seleccionados.
                 </td>
             </tr>
             {% endfor %}
@@ -126,18 +193,6 @@
         });
     }
 
-    function prepararNotificacion(nombre_completo_estudiante) {
-        document.getElementById('nombre_estudiante_modal').innerText = nombre_completo_estudiante;
-    }
-
-    function confirmarEnvioNotificacion() {
-        const elemento_modal = bootstrap.Modal.getInstance(document.getElementById('modalNotificacion'));
-        elemento_modal.hide();
-        
-        const elemento_toast = new bootstrap.Toast(document.getElementById('toastConfirmacion'));
-        elemento_toast.show();
-    }
-
     let matricula_estudiante_seleccionado = null;
 
     function prepararNotificacion(nombre_completo_estudiante, matricula_estudiante) {
@@ -159,6 +214,14 @@
         })
         .then(response => response.json())
         .then(data => {
+            const elemento_modal = bootstrap.Modal.getInstance(document.getElementById('modalNotificacion'));
+            elemento_modal.hide();
+            
+            const elemento_toast = new bootstrap.Toast(document.getElementById('toastConfirmacion'));
+            elemento_toast.show();
+        })
+        .catch(error => {
+            console.error('Error al enviar la notificación:', error);
             const elemento_modal = bootstrap.Modal.getInstance(document.getElementById('modalNotificacion'));
             elemento_modal.hide();
             
